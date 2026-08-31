@@ -56,8 +56,7 @@ export const AiNtfyPing: Plugin = async ({ client }) => {
         if (process.env.NTFY_TOKEN) {
           headers.Authorization = `Bearer ${process.env.NTFY_TOKEN}`
         }
-        const res = await fetch(url, { method: "POST", headers, body })
-        console.log(`[ai-ntfy-ping] sent to ${url} (HTTP ${res.status})`)
+        await fetch(url, { method: "POST", headers, body })
         if (messageID) lastNotified = messageID
       } catch (err) {
         console.error("[ai-ntfy-ping] notification failed:", err)
