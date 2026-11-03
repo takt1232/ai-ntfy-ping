@@ -1,6 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
-
-let lastNotified: string | undefined
+import type { Plugin } from "@opencode/plugin"
 
 function stripMarkdown(text: string): string {
   return text
@@ -12,28 +10,28 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
-export const AiNtfyPing: Plugin = async ({ client }) => {
-  return {
-    event: async ({ event }) => {
-      if (event.type !== "session.idle") return
+export default {
+  id: "ai-ntfy-ping",
+  async setup(ctx) {
+    let lastNotified: string | undefined
 
-      const sessionID = event.properties.sessionID
-
+    await ctx.session.hook("experimental.idle", async ({ sessionID }) => {
       let summary = "The AI has finished responding."
       let messageID: string | undefined
+
       try {
-        const { data } = await client.session.messages({
-          path: { id: sessionID },
-          query: { limit: 5 },
-        })
-        const messages = data ?? []
-        const lastAssistant = [...messages].reverse().find((m) => m.info.role === "assistant")
+        const messages = await ctx.session.context({ sessionID })
+        const lastAssistant = [...messages]
+          .reverse()
+          .find((m) => m.type === "assistant")
+
         if (lastAssistant) {
-          messageID = lastAssistant.info.id
+          messageID = lastAssistant.id
           if (lastNotified === messageID) return
-          const text = lastAssistant.parts
+
+          const text = lastAssistant.content
             .filter((p) => p.type === "text")
-            .map((p) => (p as { text: string }).text)
+            .map((p) => p.text)
             .join(" ")
           const stripped = stripMarkdown(text)
           if (stripped) summary = stripped
@@ -61,6 +59,6 @@ export const AiNtfyPing: Plugin = async ({ client }) => {
       } catch (err) {
         console.error("[ai-ntfy-ping] notification failed:", err)
       }
-    },
-  }
-}
+    })
+  },
+} satisfies Plugin.Plugin
